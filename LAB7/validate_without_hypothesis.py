@@ -21,6 +21,8 @@ assert format_billing_summary("Asha:25:North") == (
 )
 
 must_raise(TypeError, sanitize_meter_id, None)
+must_raise(ValueError, sanitize_meter_id, "")
+must_raise(ValueError, sanitize_meter_id, "!@#$%")
 must_raise(TypeError, parse_consumption_readings, None)
 must_raise(ValueError, parse_consumption_readings, "1,,2")
 must_raise(ValueError, parse_consumption_readings, "one,2")
@@ -28,4 +30,4 @@ must_raise(TypeError, format_billing_summary, None)
 must_raise(ValueError, format_billing_summary, "Asha:10")
 must_raise(ValueError, format_billing_summary, "Asha:x:North")
 
-print("Offline smoke checks passed: 10 checks")
+print("Offline smoke checks passed: 12 checks")

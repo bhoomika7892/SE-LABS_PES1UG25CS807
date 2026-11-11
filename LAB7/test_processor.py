@@ -56,6 +56,11 @@ def test_format_billing_summary_safe(s):
         assert " billed " in result
         assert " USD in " in result
         assert isinstance(s, str)
+        fields = s.split(":")
+        assert len(fields) == 3
+        customer_name, usage_text, zone = (field.strip() for field in fields)
+        assert customer_name and usage_text and zone
+        int(usage_text)  # accepted records must contain an integer usage value
 
 
 def test_valid_inputs_keep_expected_behavior():

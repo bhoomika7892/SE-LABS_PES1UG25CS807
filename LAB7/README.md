@@ -15,7 +15,7 @@ This lab continues the input-processing application from the water utility billi
 
 ## Functions tested
 
-1. `sanitize_meter_id(meter_id)` — trims whitespace, removes `!`, `@`, `#`, `$`, `%`, and converts the ID to uppercase.
+1. `sanitize_meter_id(meter_id)` — trims whitespace, removes `!`, `@`, `#`, `$`, `%`, converts the ID to uppercase, and rejects IDs that become empty.
 2. `parse_consumption_readings(readings_csv)` — parses comma-separated integer readings and rejects empty or non-integer tokens.
 3. `format_billing_summary(account_record)` — validates the exact `Name:Usage:Zone` format and calculates the displayed bill at 2 USD per unit.
 

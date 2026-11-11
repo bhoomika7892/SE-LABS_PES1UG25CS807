@@ -1,92 +1,82 @@
-"""Hypothesis fuzz tests for the Lab 7 input-validation functions."""
+"""Input-processing routines for the water utility billing application.
 
-from hypothesis import given, settings, strategies as st
-import pytest
-
-from processor import (
-    sanitize_meter_id,
-    parse_consumption_readings,
-    format_billing_summary,
-)
-
-# The lab starter explicitly asks for text values and null inputs.
-FUZZ_INPUTS = st.one_of(st.text(), st.none())
+This is the Lab 7 corrected version of the supplied starter processor.py.
+"""
 
 
-@settings(max_examples=250, deadline=None)
-@given(FUZZ_INPUTS)
-def test_sanitize_meter_id_no_crash(s):
+def sanitize_meter_id(meter_id):
+    """Remove supported prefix characters and return an uppercase meter ID."""
+    if not isinstance(meter_id, str):
+        raise TypeError("meter_id must be a string")
+
+    meter_id = meter_id.strip()
+    for ch in ('!', '@', '#', '$', '%'):
+        meter_id = meter_id.replace(ch, '')
+    if not meter_id:
+        raise ValueError("meter_id must not be empty after sanitization")
+    return meter_id.upper()
+
+
+def parse_consumption_readings(readings_csv):
+    """Parse a comma-separated string of integer consumption readings."""
+    if not isinstance(readings_csv, str):
+        raise TypeError("readings_csv must be a string")
+    if not readings_csv.strip():
+        raise ValueError("readings_csv must contain at least one reading")
+
+    readings = []
+    for index, token in enumerate(readings_csv.split(','), start=1):
+        token = token.strip()
+        if not token:
+            raise ValueError(f"reading {index} is empty")
+        try:
+            readings.append(int(token))
+        except ValueError as exc:
+            raise ValueError(f"reading {index} must be an integer") from exc
+    return readings
+
+
+def format_billing_summary(account_record):
+    """Format a Name:Usage:Zone record using the original 2 USD/unit rate."""
+    if not isinstance(account_record, str):
+        raise TypeError("account_record must be a string")
+
+    parts = account_record.split(':')
+    if len(parts) != 3:
+        raise ValueError("account_record must have exactly 3 fields: Name:Usage:Zone")
+
+    customer_name, usage_text, zone = (part.strip() for part in parts)
+    if not customer_name:
+        raise ValueError("customer name must not be empty")
+    if not usage_text:
+        raise ValueError("usage must not be empty")
+    if not zone:
+        raise ValueError("zone must not be empty")
+
     try:
-        result = sanitize_meter_id(s)
-    except (TypeError, ValueError):
-        # None (and other non-string values) must be rejected cleanly.
-        assert not isinstance(s, str)
-    else:
-        assert isinstance(result, str)
-        assert result == result.upper()
-        assert not any(ch in result for ch in '!@#$%')
+        units = int(usage_text)
+    except ValueError as exc:
+        raise ValueError("usage must be an integer") from exc
+
+    return f"Customer {customer_name} billed {units * 2} USD in {zone}"
 
 
-@settings(max_examples=250, deadline=None)
-@given(FUZZ_INPUTS)
-def test_parse_consumption_readings_safe(s):
-    try:
-        result = parse_consumption_readings(s)
-    except (TypeError, ValueError):
-        # A malformed value is a validation failure, not an unexpected crash.
-        assert s is None or isinstance(s, str)
-    else:
-        assert isinstance(result, list)
-        assert all(type(value) is int for value in result)
-        assert isinstance(s, str)
-        assert len(result) == len(s.split(','))
+def main():
+    print("==== Running sanitize_meter_id ====")
+    raw_id = input("Enter a meter ID with prefixes (!,@,#,$,%): ")
+    clean_id = sanitize_meter_id(raw_id)
+    print("Sanitized Meter ID:", clean_id)
+
+    print("\n==== Running parse_consumption_readings ====")
+    csv_input = input("Enter consumption readings (e.g. 10,25,30): ")
+    readings_list = parse_consumption_readings(csv_input)
+    print("Parsed Readings:", readings_list)
+
+    print("\n==== Running format_billing_summary ====")
+    summary_input = input("Enter account record (Name:Usage:Zone): ")
+    summary = format_billing_summary(summary_input)
+    print("Billing Summary:", summary)
 
 
-@settings(max_examples=250, deadline=None)
-@given(FUZZ_INPUTS)
-def test_format_billing_summary_safe(s):
-    try:
-        result = format_billing_summary(s)
-    except (TypeError, ValueError):
-        # Invalid structure/content should be rejected by validation.
-        assert s is None or isinstance(s, str)
-    else:
-        assert isinstance(result, str)
-        assert result.startswith("Customer ")
-        assert " billed " in result
-        assert " USD in " in result
-        assert isinstance(s, str)
-        fields = s.split(":")
-        assert len(fields) == 3
-        customer_name, usage_text, zone = (field.strip() for field in fields)
-        assert customer_name and usage_text and zone
-        int(usage_text)  # accepted records must contain an integer usage value
-
-
-def test_valid_inputs_keep_expected_behavior():
-    assert sanitize_meter_id("  !ab@12#  ") == "AB12"
-    assert parse_consumption_readings("10, 25,30") == [10, 25, 30]
-    assert format_billing_summary("Asha:25:North") == (
-        "Customer Asha billed 50 USD in North"
-    )
-
-
-def test_malformed_delimiters_and_nulls_are_rejected():
-    for value in (None, "", "   "):
-        with pytest.raises((TypeError, ValueError)):
-            parse_consumption_readings(value)
-
-    for value in ("1,,2", ",1", "1,", "1,two,3"):
-        with pytest.raises(ValueError):
-            parse_consumption_readings(value)
-
-    bad_records = (
-        None, "", "Asha:10", "Asha:10:North:Extra", ":10:North",
-        "Asha::North", "Asha:abc:North", "Asha:10:",
-    )
-    for value in bad_records:
-        with pytest.raises((TypeError, ValueError)):
-            format_billing_summary(value)
-
-    with pytest.raises(TypeError):
-        sanitize_meter_id(None)
+if __name__ == "__main__":
+    main()

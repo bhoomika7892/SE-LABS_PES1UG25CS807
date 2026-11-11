@@ -12,6 +12,8 @@ def sanitize_meter_id(meter_id):
     meter_id = meter_id.strip()
     for ch in ('!', '@', '#', '$', '%'):
         meter_id = meter_id.replace(ch, '')
+    if not meter_id:
+        raise ValueError("meter_id must not be empty after sanitization")
     return meter_id.upper()
 
 
